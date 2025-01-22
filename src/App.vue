@@ -2,12 +2,14 @@
 import { onMounted } from 'vue';
 import { RouterLink, RouterView } from 'vue-router'
 import { useBookingsStore } from './stores/booking';
+import { inject } from "@vercel/analytics"
 
 const bookingStore = useBookingsStore();
 const { fetchBookings } = bookingStore;
 
 onMounted(() => {
   fetchBookings();
+  inject()
 })
 </script>
 
