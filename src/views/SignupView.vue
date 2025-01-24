@@ -63,10 +63,22 @@ const user_signup_details = ref({
   password_confirmation: ''
 })
 
+const is_password_the_same = (password: string, confirm_password: string) => {
+  if(password === confirm_password) {
+    return true
+  }
+  return false
+}
+
 const handleLogin = async () => {
   console.log(user_signup_details.value);
   if(!user_signup_details.value.name || !user_signup_details.value.email || !user_signup_details.value.phone || !user_signup_details.value.password || !user_signup_details.value.password_confirmation) {
     alert('Please fill in all fields')
+    return
+  }
+
+  if(!is_password_the_same(user_signup_details.value.password, user_signup_details.value.password_confirmation)) {
+    alert('Password and confirm password does not match')
     return
   }
 
