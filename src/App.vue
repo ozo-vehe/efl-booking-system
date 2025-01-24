@@ -1,27 +1,21 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import { RouterLink, RouterView } from 'vue-router'
-import { useBookingsStore } from './stores/booking';
 import { inject } from "@vercel/analytics"
+import { RouterView } from "vue-router";
+import { onMounted } from 'vue';
+import { useBookingsStore } from '@/stores/booking';
+
 
 const bookingStore = useBookingsStore();
 const { fetchBookings } = bookingStore;
 
-onMounted(() => {
-  fetchBookings();
+onMounted(async () => {
+  await fetchBookings();
   inject()
 })
 </script>
 
 <template>
-    <nav class="flex items-center justify-center gap-4 py-5 capitalize">
-      <RouterLink activeClass="text-blue-800 bg-blue-100 px-3 py-1 rounded-lg" class="text-gray-800 bg-white px-3 py-1 rounded-lg" to="/">Home</RouterLink>
-      <RouterLink activeClass="text-blue-800 bg-blue-100 px-3 py-1 rounded-lg" class="text-gray-800 bg-white px-3 py-1 rounded-lg" to="/booking">Booking system</RouterLink>
-      <RouterLink activeClass="text-blue-800 bg-blue-100 px-3 py-1 rounded-lg" class="text-gray-800 bg-white px-3 py-1 rounded-lg" to="/dashboard">Dashboard</RouterLink>
-    </nav>
-
-  <RouterView />
+  <main class="bookings_container max-w-[1440px] mx-auto lg:px-10 md:px-5 px-4">
+    <RouterView />
+  </main>
 </template>
-
-<style scoped>
-</style>
