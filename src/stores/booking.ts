@@ -31,10 +31,8 @@ export const useBookingsStore = defineStore("bookingsStore", {
           Authorization: `Bearer ${this.token}`,
         },
       });
-      console.log(req);
       const res = await req.json();
       this.user = res;
-      console.log(res);
     },
     async userSignup(user: UserSignupDetails) {
       try {
@@ -67,9 +65,10 @@ export const useBookingsStore = defineStore("bookingsStore", {
         localStorage.setItem("token", this.token);
         this.fetchBookings();
 
-        return res.data;
+        return { message: "Login successful", status: "success" };
       } catch (error) {
         console.log(error);
+        return { message: "Incorrect login details", status: "error" };
       }
     },
     async userLogout() {
@@ -77,8 +76,6 @@ export const useBookingsStore = defineStore("bookingsStore", {
       localStorage.clear();
     },
     async getAvailableSlots(calendar_day: string) {
-      console.log(calendar_day);
-      console.log("fetching slots");
       try {
         const req = await fetch(`${BASE_API_URL}/slot`, {
           method: "POST",
@@ -88,9 +85,7 @@ export const useBookingsStore = defineStore("bookingsStore", {
           },
           body: JSON.stringify({ day: calendar_day }),
         });
-        console.log(req);
         const res = await req.json();
-        console.log(res);
         this.available_slots = res.data;
       } catch (error) {
         console.log(error);
@@ -105,7 +100,6 @@ export const useBookingsStore = defineStore("bookingsStore", {
         year: 'numeric'
       });
       booking.day = formattedDate;
-      console.log(booking);
       
       const req = await fetch(`${BASE_API_URL}/bookings`, {
         method: "POST",
@@ -115,7 +109,7 @@ export const useBookingsStore = defineStore("bookingsStore", {
         },
         body: JSON.stringify(booking),
       });
-      console.log(req);
+
       const res = await req.json();
       await this.fetchBookings();
       return res;
@@ -126,18 +120,16 @@ export const useBookingsStore = defineStore("bookingsStore", {
         this.token = getLocalToken;
         await this.getUser();
       }
-      console.log("fetching bookings");
+
       try {
         const req = await fetch(`${BASE_API_URL}/bookings`, {
           headers: {
             Authorization: `Bearer ${this.token}`,
           },
         });
-        console.log(req);
+
         const res = await req.json();
-        console.log(res.data);
         this.bookings = res.data.filter((booking: any) => booking.agencyName === this.user.name);
-        console.log(this.bookings)
       } catch (error) {
         console.log(error);
       }

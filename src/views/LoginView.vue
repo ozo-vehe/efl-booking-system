@@ -54,7 +54,13 @@ const handleLogin = async () => {
       email: email.value,
       password: password.value
     })
-    await userLogin({email: email.value, password: password.value})
+    const res = await userLogin({email: email.value, password: password.value})
+    console.log(res);
+    if(res.status == "error") {
+      alert(res.message)
+      is_loading.value = false
+      return;
+    }
     is_loading.value = false
     router.push('/booking-request')
   } catch (error) {
