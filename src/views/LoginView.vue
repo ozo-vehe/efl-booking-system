@@ -16,13 +16,13 @@
       </div>
 
       <button type="submit"
-        class="w-full py-3 px-4 bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600 transition-colors duration-300 flex items-center justify-center">
+        class="w-full h-[45px] py-3 px-4 bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600 transition-colors duration-300 flex items-center justify-center">
         <span v-if="is_loading" class="block w-5 h-5 border-x border-gray-50 rounded-full animate-spin"></span>
         <span v-else>Login</span>
       </button>
 
       <div class="mt-4 text-center">
-        <p>Don't have an account? <RouterLink to="/signup" class="text-blue-500">Signup</RouterLink></p>
+        <p>Don't have an account? <RouterLink @click="handleClick" to="signup" class="text-blue-500">Signup</RouterLink></p>
       </div>
     </form>
   </div>
@@ -32,6 +32,10 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router';
 import { useBookingsStore } from '@/stores/booking';
+
+const handleClick = () => {
+  console.log('clicked')
+}
 
 const bookingsStore = useBookingsStore()
 const {userLogin} = bookingsStore
