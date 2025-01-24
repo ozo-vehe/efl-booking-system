@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-const BASE_API_URL = "http://apitest.al-ibrabmemorialschool.com.ng/api";
+const BASE_API_URL = "https://apitest.al-ibrabmemorialschool.com.ng/api";
 
 interface UserSignupDetails {
   name: string;
@@ -93,14 +93,14 @@ export const useBookingsStore = defineStore("bookingsStore", {
     },
     async addBookings(booking: any) {
       console.log(booking);
-      
-      const formattedDate = new Date(booking.day).toLocaleDateString('en-US', {
-        month: '2-digit',
-        day: '2-digit',
-        year: 'numeric'
+
+      const formattedDate = new Date(booking.day).toLocaleDateString("en-US", {
+        month: "2-digit",
+        day: "2-digit",
+        year: "numeric",
       });
       booking.day = formattedDate;
-      
+
       const req = await fetch(`${BASE_API_URL}/bookings`, {
         method: "POST",
         headers: {
@@ -129,7 +129,9 @@ export const useBookingsStore = defineStore("bookingsStore", {
         });
 
         const res = await req.json();
-        this.bookings = res.data.filter((booking: any) => booking.agencyName === this.user.name);
+        this.bookings = res.data.filter(
+          (booking: any) => booking.agencyName === this.user.name
+        );
       } catch (error) {
         console.log(error);
       }
