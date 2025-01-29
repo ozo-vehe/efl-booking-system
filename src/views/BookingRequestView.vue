@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { onBeforeMount, type Ref, ref, watch } from 'vue';
 import { useBookingsStore } from '@/stores/booking';
-import { getDateRange } from '@/utils/booking_data';
+import { getDateRange } from '@/utils/date';
 // import { v4 } from "uuid";
 import { storeToRefs } from 'pinia';
 import NavbarComponent from '@/components/NavbarComponent.vue';
+import { useContainerStore } from '@/stores/container';
 
 interface Booking {
   day: string,
@@ -21,15 +22,21 @@ const bookingStore = useBookingsStore();
 const { addBookings, getAvailableSlots } = bookingStore;
 const { available_slots, user } = storeToRefs(bookingStore);
 
-const calendar_date = ref(new Date());
+const containerStore = useContainerStore();
+const { getContainer } = containerStore;
+const { containers } = storeToRefs(containerStore);
+
 const range: any = ref([]);
-const displayed_date = ref(calendar_date.value.toISOString());
+const calendar_displayed_dates: Ref<Date[]> = ref([]);
+const displayed_date: Ref<string> = ref('');
+const available_days: Ref<string[]> = ref([]);
 const is_loading: Ref<boolean> = ref(false);
+const is_container_loading: Ref<boolean> = ref(false);
 const is_slot_loading: Ref<boolean> = ref(false);
 const booking_details: Ref<Booking> = ref({
   day: '',
-  agency_name: user.value.name,
-  phone: user.value.phone,
+  agency_name: '',
+  phone: '',
   bl_number: '',
   container_number: '',
   invoice_number: '',
@@ -38,35 +45,48 @@ const booking_details: Ref<Booking> = ref({
 
 const formatDateTime = (isoString: string) => {
   const date = new Date(isoString);
-  return date.toLocaleString('en-US', {
+  const edited_date = date.toLocaleString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
+  if (edited_date === 'Invalid Date') return { is_available: false, message: 'Invalid date' };
+  return { is_available: true, message: edited_date };
 };
 
 const handleSubmitForm = async () => {
+  console.log(booking_details.value)
   is_loading.value = true;
-  if (booking_details.value.command === '' || booking_details.value.agency_name === '' || booking_details.value.phone === '' || booking_details.value.bl_number === '' || booking_details.value.container_number === '' || booking_details.value.invoice_number === '') {
+  if (booking_details.value.command === '' || booking_details.value.bl_number === '' || booking_details.value.container_number === '' || booking_details.value.invoice_number === '') {
     alert('Please fill all fields');
     is_loading.value = false;
     return;
   }
+
   try {
-    booking_details.value.day = displayed_date.value;
-    const res = await addBookings({ ...booking_details.value });
-    if(res.statusCode >= 200 && res.statusCode < 300) {
+    console.log(displayed_date.value)
+    if(displayed_date.value === '') {
+      alert('Invalid date');
       is_loading.value = false;
-    alert('Booking request submitted successfully');
-    booking_details.value = {
-      command: '',
-      agency_name: user.value.name,
-      phone: user.value.phone,
-      bl_number: '',
-      container_number: '',
-      invoice_number: '',
-      day: displayed_date.value,
-    };
+      return;
+    }
+    booking_details.value.day = displayed_date.value;
+    booking_details.value.agency_name = user.value.name;
+    booking_details.value.phone = user.value.phone;
+    console.log(booking_details.value);
+    const res = await addBookings({ ...booking_details.value });
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      is_loading.value = false;
+      alert('Booking request submitted successfully');
+      booking_details.value = {
+        command: '',
+        agency_name: '',
+        phone: '',
+        bl_number: '',
+        container_number: '',
+        invoice_number: '',
+        day: displayed_date.value,
+      };
     } else {
       is_loading.value = false;
       new Error(res.message);
@@ -77,31 +97,78 @@ const handleSubmitForm = async () => {
   }
 }
 
-const attributes = ref([
+
+const handleDayClick = async(e: any) => {
+  const month = e.month;
+  const day = e.day;
+  const year = e.year;
+
+  const is_valid_day = range.value.includes(`${month}/${day}/${year}`);
+  console.log(is_valid_day);
+  is_slot_loading.value = true;
+  if (is_valid_day) {
+    displayed_date.value = `${month}/${day}/${year}`;
+    console.log(range.value[0])
+    await getAvailableSlots(`${month}/${day}/${year}`);
+
+    is_slot_loading.value = false;
+    return;
+  } else {
+    displayed_date.value = 'Cannot book on this day';
+    console.log('Cannot book on this day');
+    is_slot_loading.value = false;
+  }
+
+  // await getAvailableSlots(range.value[0]);
+
+  console.log(`${month}/${day}/${year}`);
+  console.log(range.value);
+}
+
+const fetchContainers = async (e: FocusEvent) => {
+  const bl_number: string = (e.target as HTMLInputElement)?.value;
+  if (bl_number.length >= 9) {
+    try {
+      is_container_loading.value = true;
+      console.log("Fetching containers");
+      await getContainer(bl_number);
+      is_container_loading.value = false;
+    } catch (error) {
+      console.log(error);
+    }
+  }
+}
+
+const disabledDates = ref([
   {
-    highlight: true,
-    dates: new Date(range.value[0])
+    highlight: "red",
+    repeat: {
+      weekdays: [7, 1],
+    },
+  },
+]);
+
+const attributes: Ref<{ highlight: string, dates: Date[] }[]> = ref([
+  {
+    highlight: "blue",
+    dates: [],
   }
 ])
 
-watch(calendar_date, async (newVal, oldVal) => {
-  if (newVal == oldVal) return;
-  booking_details.value.day = newVal.toISOString();
-  displayed_date.value = newVal.toISOString();
-  is_slot_loading.value = true;
-  const date = new Date(displayed_date.value);
-  const available_day: string = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-
-  await getAvailableSlots(available_day);
-  is_slot_loading.value = false;
-  console.log(available_day);
-});
-
-
 onBeforeMount(async () => {
-  range.value = getDateRange();
-  await getAvailableSlots(range.value[0]);
-  calendar_date.value = range.value[0];
+  const { range: range_days, } = getDateRange();
+  range.value = range_days;
+  const formattedRangeDays = range_days.map(date => {
+    const [month, day, year] = date.split('/');
+    return `${year},${month},${day}`;
+  });
+  available_days.value = formattedRangeDays;
+  available_days.value.forEach(async (date) => {
+    const new_date = new Date(date);
+    calendar_displayed_dates.value.push(new_date)
+  })
+  attributes.value[0].dates = [...calendar_displayed_dates.value];
+  // await getContainer("COSU6366375870");
 })
 </script>
 
@@ -112,13 +179,18 @@ onBeforeMount(async () => {
 
     <div class="booking_system flex gap-8 flex-wrap justify-center mt-8">
       <div class="calender_container text-center">
-        <VDatePicker v-model="calendar_date" :min-date="range[0]" :max-date="range[6]" />
-        <p class="my-2 text-left"><span class="font-[600]">Date picked:</span> {{ formatDateTime(displayed_date) }}</p>
+        <VDatePicker @dayclick="handleDayClick" :min-date="available_days[0]"
+          :max-date="available_days[available_days.length - 1]" :disabled-dates="disabledDates" :attributes="attributes" />
+        <p class="my-2 text-left">
+          <span class="font-[600]">Date picked: </span>
+          <span v-if="formatDateTime(displayed_date).is_available">{{ formatDateTime(displayed_date).message }}</span>
+          <span v-else class="text-sm text-red-600 font-[500]">{{ displayed_date }}</span>
+        </p>
         <p class="flex items-start gap-4 font-[600]">Slots available: <span v-if="is_slot_loading"
             class="w-4 h-4 mt-1 rounded-full border-x border-gray-700 animate-spin block"></span>
         <ul v-else class="font-[400]">
-          <li>Apapa {{ available_slots.apapa }}</li>
-          <li>Tincan {{ available_slots.apapa }}</li>
+          <li class="flex items-center justify-center gap-2">Apapa {{ available_slots.apapa }}</li>
+          <li class="flex items-center justify-center gap-2">Tincan {{ available_slots.tincan }}</li>
         </ul>
         </p>
       </div>
@@ -136,39 +208,45 @@ onBeforeMount(async () => {
 
         <div class="fullname w-full flex flex-col gap-1 mb-4">
           <label for="fullname">Name</label>
-          <input v-model="user.name" class="w-full px-2 py-2 border rounded-md" type="text"
-            name="fullname" id="fullname" placeholder="Full Name" required>
+          <input :value="user.name" class="w-full px-2 py-2 border rounded-md" type="text" name="fullname" id="fullname"
+            placeholder="Full Name" disabled>
         </div>
 
 
         <div class="phone_number flex flex-col gap-1 mb-4">
           <label for="phone_number">Phone Number</label>
-          <input v-model="user.phone" class="w-full border px-2 py-2 rounded-md" type="tel"
-            name="phone_number" id="phone_number" placeholder="Phone Number" required>
+          <input :value="user.phone" class="w-full border px-2 py-2 rounded-md" type="tel" name="phone_number"
+            id="phone_number" placeholder="Phone Number" disabled>
         </div>
 
 
         <div class="bl_number flex flex-col gap-1 mb-4">
           <label for="bl_number">BL Number</label>
           <input v-model="booking_details.bl_number" class="w-full border px-2 py-2 rounded-md" type="text"
-            name="bl_number" id="bl_number" placeholder="BL Number" required>
+            name="bl_number" id="bl_number" placeholder="BL Number" @focusout="fetchContainers" required>
         </div>
 
-        <div class="container_number flex flex-col gap-1 mb-4">
-          <label for="container_number">Container Number</label>
-          <input v-model="booking_details.container_number" class="w-full border px-2 py-2 rounded-md" type="text"
-            name="container_number" id="container_number" placeholder="Container Number" required>
+        <span v-if="is_container_loading" class="block mx-auto w-4 h-4 rounded-full border-x border-gray-900 animate-spin"></span>
+
+        <div v-if="containers.length >= 1" class="container_number flex flex-col gap-1 mb-4">
+          <label for="container_numbers">Container Number</label>
+          <!-- <input v-model="booking_details.container_number" class="w-full border px-2 py-2 rounded-md" type="text"
+            name="container_number" id="container_number" placeholder="Container Number" required> -->
+          <select name="container_numbers" id="container_numbers" class="w-full border px-2 h-[45px] rounded-md" v-model="booking_details.container_number" required>
+            <option value="">Pick your container number</option>
+            <option v-for="container in containers" :key="container.id" :value="container.container_number">{{ container.container_number }}</option>
+          </select>
         </div>
 
         <div class="invoice_number flex flex-col gap-1 mb-4">
-          <label for="invoice_number">Invoice Number</label>
+          <label for="invoice_number">Receipt Number</label>
           <input v-model="booking_details.invoice_number" class="w-full border px-2 py-2 rounded-md" type="text"
             name="invoice_number" id="invoice_number" placeholder="Invoice Number" required>
         </div>
 
         <div class="form_button">
           <button
-            class="bg-blue-400 w-full py-2 h-10 rounded-md text-gray-50 hover:bg-blue-500 transition-all duration-300 flex items-center justify-center"
+            class="bg-blue-500 w-full py-2 h-10 rounded-md text-gray-50 hover:text-white hover:font-[500] disabled:font-[400] disabled:border-2 disabled:border-red-500 transition-all duration-300 flex items-center justify-center" :disabled="containers.length < 1 || is_loading"
             type="submit">
             <span v-if="is_loading" class="block w-5 h-5 rounded-full animate-spin border-x border-gray-50"></span>
             <span v-else>Request for booking</span>

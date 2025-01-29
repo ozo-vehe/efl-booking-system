@@ -23,6 +23,7 @@
 
       <div class="mt-4 text-center">
         <p>Don't have an account? <RouterLink @click="handleClick" to="signup" class="text-blue-500">Signup</RouterLink></p>
+        <p class="text-sm mt-2">Forget password? <RouterLink class="text-blue-500" to="#">Click here</RouterLink></p>
       </div>
     </form>
   </div>

@@ -100,6 +100,7 @@ export const useBookingsStore = defineStore("bookingsStore", {
         year: "numeric",
       });
       booking.day = formattedDate;
+      console.log(booking);
 
       const req = await fetch(`${BASE_API_URL}/bookings`, {
         method: "POST",
@@ -109,8 +110,9 @@ export const useBookingsStore = defineStore("bookingsStore", {
         },
         body: JSON.stringify(booking),
       });
-
+      console.log(req)
       const res = await req.json();
+      console.log(res)
       await this.fetchBookings();
       return res;
     },
@@ -129,6 +131,7 @@ export const useBookingsStore = defineStore("bookingsStore", {
         });
 
         const res = await req.json();
+        console.log(res)
         this.bookings = res.data.filter(
           (booking: any) => booking.agencyName === this.user.name
         );
