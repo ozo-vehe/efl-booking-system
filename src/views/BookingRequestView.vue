@@ -6,6 +6,8 @@ import { getDateRange } from '@/utils/date';
 import { storeToRefs } from 'pinia';
 import NavbarComponent from '@/components/NavbarComponent.vue';
 import { useContainerStore } from '@/stores/container';
+import VueCal from 'vue-cal'
+import 'vue-cal/dist/vuecal.css'
 
 interface Booking {
   day: string,
@@ -29,6 +31,7 @@ const { containers } = storeToRefs(containerStore);
 const range: any = ref([]);
 const calendar_displayed_dates: Ref<Date[]> = ref([]);
 const displayed_date: Ref<string> = ref('');
+const disabled_days_arr: Ref<string[]> = ref([]);
 const available_days: Ref<string[]> = ref([]);
 const is_loading: Ref<boolean> = ref(false);
 const is_container_loading: Ref<boolean> = ref(false);
@@ -65,7 +68,7 @@ const handleSubmitForm = async () => {
 
   try {
     console.log(displayed_date.value)
-    if(displayed_date.value === '') {
+    if (displayed_date.value === '') {
       alert('Invalid date');
       is_loading.value = false;
       return;
@@ -98,7 +101,7 @@ const handleSubmitForm = async () => {
 }
 
 
-const handleDayClick = async(e: any) => {
+const handleDayClick = async (e: any) => {
   const month = e.month;
   const day = e.day;
   const year = e.year;
@@ -156,12 +159,24 @@ const attributes: Ref<{ highlight: string, dates: Date[] }[]> = ref([
 ])
 
 onBeforeMount(async () => {
-  const { range: range_days, } = getDateRange();
+  const { range: range_days, disabled_days } = getDateRange();
   range.value = range_days;
+
   const formattedRangeDays = range_days.map(date => {
     const [month, day, year] = date.split('/');
     return `${year},${month},${day}`;
   });
+  const formattedDisabledDays = disabled_days.map(date => {
+    const [month, day, year] = date.split('/');
+    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+  });
+
+  disabled_days_arr.value = formattedDisabledDays;
+
+  console.log(formattedDisabledDays)
+  console.log(disabled_days_arr.value);
+
+
   available_days.value = formattedRangeDays;
   available_days.value.forEach(async (date) => {
     const new_date = new Date(date);
@@ -170,6 +185,10 @@ onBeforeMount(async () => {
   attributes.value[0].dates = [...calendar_displayed_dates.value];
   // await getContainer("COSU6366375870");
 })
+
+// VUE CAL
+// const min_date = ref(new Date());
+// const max_date = ref("2025-02-1");
 </script>
 
 <template>
@@ -178,9 +197,10 @@ onBeforeMount(async () => {
     <h1 class="text-2xl mb-4 font-[600] text-center">EFL Terminal Booking System</h1>
 
     <div class="booking_system flex gap-8 flex-wrap justify-center mt-8">
-      <div class="calender_container text-center">
+      <!-- <div class="calender_container text-center">
         <VDatePicker @dayclick="handleDayClick" :min-date="available_days[0]"
-          :max-date="available_days[available_days.length - 1]" :disabled-dates="disabledDates" :attributes="attributes" />
+          :max-date="available_days[available_days.length - 1]" :disabled-dates="disabledDates"
+          :attributes="attributes" />
         <p class="my-2 text-left">
           <span class="font-[600]">Date picked: </span>
           <span v-if="formatDateTime(displayed_date).is_available">{{ formatDateTime(displayed_date).message }}</span>
@@ -193,6 +213,12 @@ onBeforeMount(async () => {
           <li class="flex items-center justify-center gap-2">Tincan {{ available_slots.tincan }}</li>
         </ul>
         </p>
+      </div> -->
+
+      <div class="vue_cal h-[350px] w-[300px]">
+        <vue-cal class="vuecal--date-picker" xsmall hide-view-selector :time="false" active-view="month"
+          :disable-views="['week']" :disable-days="[...disabled_days_arr]" min-date="2025-02-01" max-date="2025-02-10">
+        </vue-cal>
       </div>
 
       <form class="w-[400px]" @submit.prevent="handleSubmitForm">
@@ -226,15 +252,18 @@ onBeforeMount(async () => {
             name="bl_number" id="bl_number" placeholder="BL Number" @focusout="fetchContainers" required>
         </div>
 
-        <span v-if="is_container_loading" class="block mx-auto w-4 h-4 rounded-full border-x border-gray-900 animate-spin"></span>
+        <span v-if="is_container_loading"
+          class="block mx-auto w-4 h-4 rounded-full border-x border-gray-900 animate-spin"></span>
 
         <div v-if="containers.length >= 1" class="container_number flex flex-col gap-1 mb-4">
           <label for="container_numbers">Container Number</label>
           <!-- <input v-model="booking_details.container_number" class="w-full border px-2 py-2 rounded-md" type="text"
             name="container_number" id="container_number" placeholder="Container Number" required> -->
-          <select name="container_numbers" id="container_numbers" class="w-full border px-2 h-[45px] rounded-md" v-model="booking_details.container_number" required>
+          <select name="container_numbers" id="container_numbers" class="w-full border px-2 h-[45px] rounded-md"
+            v-model="booking_details.container_number" required>
             <option value="">Pick your container number</option>
-            <option v-for="container in containers" :key="container.id" :value="container.container_number">{{ container.container_number }}</option>
+            <option v-for="container in containers" :key="container.id" :value="container.container_number">{{
+              container.container_number }}</option>
           </select>
         </div>
 
@@ -246,8 +275,8 @@ onBeforeMount(async () => {
 
         <div class="form_button">
           <button
-            class="bg-blue-500 w-full py-2 h-10 rounded-md text-gray-50 hover:text-white hover:font-[500] disabled:font-[400] disabled:border-2 disabled:border-red-500 transition-all duration-300 flex items-center justify-center" :disabled="containers.length < 1 || is_loading"
-            type="submit">
+            class="bg-blue-500 w-full py-2 h-10 rounded-md text-gray-50 hover:text-white hover:font-[500] disabled:font-[400] disabled:border-2 disabled:border-red-500 transition-all duration-300 flex items-center justify-center"
+            :disabled="containers.length < 1 || is_loading" type="submit">
             <span v-if="is_loading" class="block w-5 h-5 rounded-full animate-spin border-x border-gray-50"></span>
             <span v-else>Request for booking</span>
           </button>
@@ -256,3 +285,23 @@ onBeforeMount(async () => {
     </div>
   </main>
 </template>
+
+<style>
+.vuecal__cell--disabled {
+  text-decoration: line-through;
+}
+
+.vuecal__cell--before-min {
+  color: #b6d6c7;
+}
+
+.vuecal__cell--after-max {
+  color: #b6d6c7;
+}
+
+.vuecal__cell:not(.vuecal__cell--disabled) .vuecal__flex {
+  background-color: #0649c4;
+  color: #fff;
+  font-weight: 700;
+}
+</style>
