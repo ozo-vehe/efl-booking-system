@@ -95,7 +95,8 @@ const handleSendResetCode = async () => {
 }
 
 const handlePasswordReset = async () => {
-  if (email.value === '' || token.value === '' || password.value === '' || c_password.value === '') {
+  const email = localStorage.getItem('email');
+  if (token.value === '' || password.value === '' || c_password.value === '') {
     alert('Please fill in all fields')
     return
   }
@@ -106,7 +107,7 @@ const handlePasswordReset = async () => {
   }
 
   const reset_details = {
-    email: email.value,
+    email: email as string,
     token: token.value,
     password: password.value,
     password_confirmation: c_password.value
