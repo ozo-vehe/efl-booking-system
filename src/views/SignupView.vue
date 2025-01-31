@@ -1,6 +1,6 @@
 <template>
   <div class="flex justify-center items-center min-h-screen p-5">
-    <form @submit.prevent="handleLogin" class="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
+    <form @submit.prevent="handleSignup" class="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
       <h2 class="text-2xl font-bold text-center mb-6">Signup</h2>
 
       <div class="mb-4">
@@ -45,12 +45,11 @@
       <button type="submit"
         class="w-full h-[45px] py-3 px-4 bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600 transition-colors duration-300 flex items-center justify-center">
         <span v-if="is_loading" class="block w-5 h-5 border-x border-gray-50 rounded-full animate-spin"></span>
-        <span v-else>Signup</span>
+        <span v-else>Send Verification Token</span>
       </button>
       <div class="mt-4 text-center">
         <p>Have an account? <RouterLink to="/" class="text-blue-500">Login</RouterLink>
         </p>
-        <p class="text-sm mt-2">Forget password? <RouterLink class="text-blue-500" to="#">Click here</RouterLink></p>
       </div>
     </form>
   </div>
@@ -87,7 +86,7 @@ const user_signup_details = ref({
  * Handles the signup form submission
  * Validates form fields and passwords before submission
  */
-const handleLogin = async () => {
+const handleSignup = async () => {
   console.log(user_signup_details.value);
   if (!user_signup_details.value.name || !user_signup_details.value.email || !user_signup_details.value.phone || !user_signup_details.value.password || !user_signup_details.value.password_confirmation) {
     alert('Please fill in all fields')
@@ -106,11 +105,17 @@ const handleLogin = async () => {
 
   try {
     is_loading.value = true
-    await userSignup(user_signup_details.value);
+    const data = await userSignup(user_signup_details.value);
+    console.log(data);
+    if(data) {
+      console.log("Yes");
+      router.push('/verify-email');
+    } else {
+      console.log("No");
+    }
     is_loading.value = false;
-    router.push('/');
   } catch (error) {
-    console.error('Login error:', error)
+    console.error('Verification error:', error)
   }
 }
 </script>

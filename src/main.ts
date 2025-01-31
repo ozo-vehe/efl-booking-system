@@ -19,9 +19,9 @@ app.mount("#app");
 
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem("token");
-  if (token && (to.path === "/" || to.path === "/signup")) {
+  if (token && (to.path === "/" || to.path === "/signup" || to.path === "/verify-email" || to.path === "/forget-password")) {
     next("/booking-request");
-  } else if (!token && to.path !== "/" && to.path !== "/signup") {
+  } else if (!token && to.path !== "/" && to.path !== "/signup" && to.path !== "/verify-email" && to.path !== "/forget-password") {
     next("/");
   } else {
     next();

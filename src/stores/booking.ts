@@ -15,6 +15,13 @@ interface UserLoginDetails {
   password: string;
 }
 
+interface PasswordReset {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
 export const useBookingsStore = defineStore("bookingsStore", {
   state: () => ({
     bookings: [] as any[],
@@ -40,12 +47,52 @@ export const useBookingsStore = defineStore("bookingsStore", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Accept: "application/json",
           },
           body: JSON.stringify(user),
         });
         const res = await req.json();
-
+        console.log(res);
+        localStorage.setItem("email", user.email);
         return res.data;
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    async userEmailVerification(token: string) {
+      const email = localStorage.getItem("email");
+      console.log(email);
+      try {
+        const req = await fetch(`${BASE_API_URL}/auth/verify-mail`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            token,
+            email: 'gaubrey1997@gmail.com'
+          }),
+        });
+        const res = await req.json();
+        return res;
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    async userResendEmailVerification() {
+      const email = localStorage.getItem("email");
+      try {
+        const req = await fetch(`${BASE_API_URL}/auth/resend-verification-mail`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+          }),
+        });
+        const res = await req.json();
+        return res;
       } catch (error) {
         console.log(error);
       }
@@ -56,10 +103,12 @@ export const useBookingsStore = defineStore("bookingsStore", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Accept: "application/json",
           },
           body: JSON.stringify(user),
         });
         const res = await req.json();
+        console.log(res);
         this.token = res.data.token;
         await this.getUser();
         localStorage.setItem("token", this.token);
@@ -73,7 +122,7 @@ export const useBookingsStore = defineStore("bookingsStore", {
     },
     async userLogout() {
       this.token = "";
-      localStorage.clear();
+      localStorage.removeItem("token");
     },
     async getAvailableSlots(calendar_day: string) {
       try {
@@ -110,9 +159,9 @@ export const useBookingsStore = defineStore("bookingsStore", {
         },
         body: JSON.stringify(booking),
       });
-      console.log(req)
+      console.log(req);
       const res = await req.json();
-      console.log(res)
+      console.log(res);
       await this.fetchBookings();
       return res;
     },
@@ -131,7 +180,7 @@ export const useBookingsStore = defineStore("bookingsStore", {
         });
 
         const res = await req.json();
-        console.log(res)
+        console.log(res);
         this.bookings = res.data.filter(
           (booking: any) => booking.agencyName === this.user.name
         );
@@ -139,6 +188,40 @@ export const useBookingsStore = defineStore("bookingsStore", {
         console.log(error);
       }
     },
+    async userInitiatePasswordReset(email: string) {
+      try {
+        const req = await fetch(`${BASE_API_URL}/auth/forget/mail`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+          }),
+        });
+        const res = await req.json();
+        return res;
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    async userResetPassword(reset_details: PasswordReset) {
+      try {
+        const req = await fetch(`${BASE_API_URL}/auth/forget/reset`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify(reset_details),
+        });
+        const res = await req.json();
+        return res;
+      } catch (error) {
+        console.log(error);
+      }
+    }
   },
   getters: {},
 });

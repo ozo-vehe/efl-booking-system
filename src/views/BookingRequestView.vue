@@ -29,10 +29,8 @@ const { getContainer } = containerStore;
 const { containers } = storeToRefs(containerStore);
 
 const range: any = ref([]);
-const calendar_displayed_dates: Ref<Date[]> = ref([]);
 const displayed_date: Ref<string> = ref('');
 const disabled_days_arr: Ref<string[]> = ref([]);
-const available_days: Ref<string[]> = ref([]);
 const is_loading: Ref<boolean> = ref(false);
 const is_container_loading: Ref<boolean> = ref(false);
 const is_slot_loading: Ref<boolean> = ref(false);
@@ -102,30 +100,18 @@ const handleSubmitForm = async () => {
 
 
 const handleDayClick = async (e: any) => {
-  const month = e.month;
-  const day = e.day;
-  const year = e.year;
 
-  const is_valid_day = range.value.includes(`${month}/${day}/${year}`);
-  console.log(is_valid_day);
-  is_slot_loading.value = true;
-  if (is_valid_day) {
-    displayed_date.value = `${month}/${day}/${year}`;
-    console.log(range.value[0])
-    await getAvailableSlots(`${month}/${day}/${year}`);
-
-    is_slot_loading.value = false;
-    return;
-  } else {
-    displayed_date.value = 'Cannot book on this day';
-    console.log('Cannot book on this day');
-    is_slot_loading.value = false;
-  }
-
-  // await getAvailableSlots(range.value[0]);
-
-  console.log(`${month}/${day}/${year}`);
-  console.log(range.value);
+  // console.log(e);
+  const { message } = formatDateTime(e);
+  displayed_date.value = message;
+  const edited_date = new Date(message).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  });
+  const [month, day, year] = edited_date.split('/');
+  const formatted_date = `${year}/${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}`;
+  await getAvailableSlots(formatted_date);
 }
 
 const fetchContainers = async (e: FocusEvent) => {
@@ -142,25 +128,11 @@ const fetchContainers = async (e: FocusEvent) => {
   }
 }
 
-const disabledDates = ref([
-  {
-    highlight: "red",
-    repeat: {
-      weekdays: [7, 1],
-    },
-  },
-]);
-
-const attributes: Ref<{ highlight: string, dates: Date[] }[]> = ref([
-  {
-    highlight: "blue",
-    dates: [],
-  }
-])
-
 onBeforeMount(async () => {
   const { range: range_days, disabled_days } = getDateRange();
   range.value = range_days;
+
+  console.log(range.value)
 
   const formattedRangeDays = range_days.map(date => {
     const [month, day, year] = date.split('/');
@@ -172,23 +144,8 @@ onBeforeMount(async () => {
   });
 
   disabled_days_arr.value = formattedDisabledDays;
-
-  console.log(formattedDisabledDays)
-  console.log(disabled_days_arr.value);
-
-
-  available_days.value = formattedRangeDays;
-  available_days.value.forEach(async (date) => {
-    const new_date = new Date(date);
-    calendar_displayed_dates.value.push(new_date)
-  })
-  attributes.value[0].dates = [...calendar_displayed_dates.value];
-  // await getContainer("COSU6366375870");
+  console.log(booking_details.value.invoice_number.length)
 })
-
-// VUE CAL
-// const min_date = ref(new Date());
-// const max_date = ref("2025-02-1");
 </script>
 
 <template>
@@ -197,14 +154,13 @@ onBeforeMount(async () => {
     <h1 class="text-2xl mb-4 font-[600] text-center">EFL Terminal Booking System</h1>
 
     <div class="booking_system flex gap-8 flex-wrap justify-center mt-8">
-      <!-- <div class="calender_container text-center">
-        <VDatePicker @dayclick="handleDayClick" :min-date="available_days[0]"
-          :max-date="available_days[available_days.length - 1]" :disabled-dates="disabledDates"
-          :attributes="attributes" />
+      <div class="vue_cal h-[350px] w-[300px]">
+        <vue-cal class="vuecal--date-picker" xsmall hide-view-selector :time="false" active-view="month"
+          :disable-views="['week']" :disable-days="[...disabled_days_arr]" :min-date="range[0]" :max-date="range[range.length - 1]" @cell-click="handleDayClick">
+        </vue-cal>
         <p class="my-2 text-left">
           <span class="font-[600]">Date picked: </span>
-          <span v-if="formatDateTime(displayed_date).is_available">{{ formatDateTime(displayed_date).message }}</span>
-          <span v-else class="text-sm text-red-600 font-[500]">{{ displayed_date }}</span>
+          <span>{{ displayed_date }}</span>
         </p>
         <p class="flex items-start gap-4 font-[600]">Slots available: <span v-if="is_slot_loading"
             class="w-4 h-4 mt-1 rounded-full border-x border-gray-700 animate-spin block"></span>
@@ -213,12 +169,6 @@ onBeforeMount(async () => {
           <li class="flex items-center justify-center gap-2">Tincan {{ available_slots.tincan }}</li>
         </ul>
         </p>
-      </div> -->
-
-      <div class="vue_cal h-[350px] w-[300px]">
-        <vue-cal class="vuecal--date-picker" xsmall hide-view-selector :time="false" active-view="month"
-          :disable-views="['week']" :disable-days="[...disabled_days_arr]" min-date="2025-02-01" max-date="2025-02-10">
-        </vue-cal>
       </div>
 
       <form class="w-[400px]" @submit.prevent="handleSubmitForm">
@@ -267,7 +217,7 @@ onBeforeMount(async () => {
           </select>
         </div>
 
-        <div class="invoice_number flex flex-col gap-1 mb-4">
+        <div v-if="containers.length >= 1" class="invoice_number flex flex-col gap-1 mb-4">
           <label for="invoice_number">Receipt Number</label>
           <input v-model="booking_details.invoice_number" class="w-full border px-2 py-2 rounded-md" type="text"
             name="invoice_number" id="invoice_number" placeholder="Invoice Number" required>
@@ -275,8 +225,8 @@ onBeforeMount(async () => {
 
         <div class="form_button">
           <button
-            class="bg-blue-500 w-full py-2 h-10 rounded-md text-gray-50 hover:text-white hover:font-[500] disabled:font-[400] disabled:border-2 disabled:border-red-500 transition-all duration-300 flex items-center justify-center"
-            :disabled="containers.length < 1 || is_loading" type="submit">
+            class="bg-blue-600 w-full py-2 h-10 rounded-md text-gray-50 hover:text-white hover:font-[500] disabled:font-[400] disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center"
+            :disabled="booking_details.invoice_number.length < 1 && !booking_details.container_number && !booking_details.command" type="submit">
             <span v-if="is_loading" class="block w-5 h-5 rounded-full animate-spin border-x border-gray-50"></span>
             <span v-else>Request for booking</span>
           </button>
