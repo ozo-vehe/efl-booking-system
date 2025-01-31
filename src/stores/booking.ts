@@ -70,7 +70,7 @@ export const useBookingsStore = defineStore("bookingsStore", {
           },
           body: JSON.stringify({
             token,
-            email: 'gaubrey1997@gmail.com'
+            email,
           }),
         });
         const res = await req.json();
