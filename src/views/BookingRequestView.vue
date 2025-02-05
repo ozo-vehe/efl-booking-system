@@ -19,7 +19,6 @@ interface Booking {
   command: string
 }
 
-
 const bookingStore = useBookingsStore();
 const { addBookings, getAvailableSlots } = bookingStore;
 const { available_slots, user } = storeToRefs(bookingStore);
@@ -29,12 +28,13 @@ const { getContainer } = containerStore;
 const { containers } = storeToRefs(containerStore);
 
 const range: any = ref([]);
-const displayed_date: Ref<string> = ref('');
-const disabled_days_arr: Ref<string[]> = ref([]);
-const is_loading: Ref<boolean> = ref(false);
-const is_container_loading: Ref<boolean> = ref(false);
-const is_slot_loading: Ref<boolean> = ref(false);
-const booking_details: Ref<Booking> = ref({
+const displayed_date = ref('');
+const disabled_days_arr: any = ref([]);
+const is_loading = ref(false);
+const is_container_loading = ref(false);
+const is_slot_loading = ref(false);
+const show_dropdown = ref(false);
+const booking_details = ref({
   day: '',
   agency_name: '',
   phone: '',
@@ -51,33 +51,32 @@ const formatDateTime = (isoString: string) => {
     month: 'long',
     day: 'numeric',
   });
-  if (edited_date === 'Invalid Date') return { is_available: false, message: 'Invalid date' };
-  return { is_available: true, message: edited_date };
+  return edited_date === 'Invalid Date' ? 
+    { is_available: false, message: 'Invalid date' } : 
+    { is_available: true, message: edited_date };
 };
 
 const handleSubmitForm = async () => {
-  console.log(booking_details.value)
-  is_loading.value = true;
-  if (booking_details.value.command === '' || booking_details.value.bl_number === '' || booking_details.value.container_number === '' || booking_details.value.invoice_number === '') {
+  if (!booking_details.value.command || !booking_details.value.bl_number || 
+      !booking_details.value.container_number || !booking_details.value.invoice_number) {
     alert('Please fill all fields');
-    is_loading.value = false;
+    return;
+  }
+
+  if (!displayed_date.value) {
+    alert('Invalid date');
     return;
   }
 
   try {
-    console.log(displayed_date.value)
-    if (displayed_date.value === '') {
-      alert('Invalid date');
-      is_loading.value = false;
-      return;
-    }
+    is_loading.value = true;
     booking_details.value.day = displayed_date.value;
     booking_details.value.agency_name = user.value.name;
     booking_details.value.phone = user.value.phone;
-    console.log(booking_details.value);
+
     const res = await addBookings({ ...booking_details.value });
+    
     if (res.statusCode >= 200 && res.statusCode < 300) {
-      is_loading.value = false;
       alert('Booking request submitted successfully');
       booking_details.value = {
         command: '',
@@ -89,19 +88,16 @@ const handleSubmitForm = async () => {
         day: displayed_date.value,
       };
     } else {
-      is_loading.value = false;
-      new Error(res.message);
-      return;
+      throw new Error(res.message);
     }
   } catch (error) {
-    console.log(error);
+    console.error(error);
+  } finally {
+    is_loading.value = false;
   }
 }
 
-
 const handleDayClick = async (e: any) => {
-
-  // console.log(e);
   const { message } = formatDateTime(e);
   displayed_date.value = message;
   const edited_date = new Date(message).toLocaleString('en-US', {
@@ -115,15 +111,15 @@ const handleDayClick = async (e: any) => {
 }
 
 const fetchContainers = async (e: FocusEvent) => {
-  const bl_number: string = (e.target as HTMLInputElement)?.value;
+  const bl_number = (e.target as HTMLInputElement)?.value;
   if (bl_number.length >= 9) {
     try {
       is_container_loading.value = true;
-      console.log("Fetching containers");
       await getContainer(bl_number);
-      is_container_loading.value = false;
     } catch (error) {
-      console.log(error);
+      console.error(error);
+    } finally {
+      is_container_loading.value = false;
     }
   }
 }
@@ -131,8 +127,6 @@ const fetchContainers = async (e: FocusEvent) => {
 onBeforeMount(async () => {
   const { range: range_days, disabled_days } = getDateRange();
   range.value = range_days;
-
-  console.log(range.value)
 
   const formattedRangeDays = range_days.map(date => {
     const [month, day, year] = date.split('/');
@@ -144,9 +138,7 @@ onBeforeMount(async () => {
   });
 
   disabled_days_arr.value = formattedDisabledDays;
-  console.log(booking_details.value.invoice_number.length)
-})
-</script>
+})</script>
 
 <template>
   <NavbarComponent />
@@ -203,18 +195,16 @@ onBeforeMount(async () => {
         </div>
 
         <span v-if="is_container_loading"
-          class="block mx-auto w-4 h-4 rounded-full border-x border-gray-900 animate-spin"></span>
+          class="block mx-auto mb-2 w-4 h-4 rounded-full border-x border-gray-900 animate-spin"></span>
 
-        <div v-if="containers.length >= 1" class="container_number flex flex-col gap-1 mb-4">
-          <label for="container_numbers">Container Number</label>
-          <!-- <input v-model="booking_details.container_number" class="w-full border px-2 py-2 rounded-md" type="text"
-            name="container_number" id="container_number" placeholder="Container Number" required> -->
-          <select name="container_numbers" id="container_numbers" class="w-full border px-2 h-[45px] rounded-md"
-            v-model="booking_details.container_number" required>
-            <option value="">Pick your container number</option>
-            <option v-for="container in containers" :key="container.id" :value="container.container_number">{{
-              container.container_number }}</option>
-          </select>
+        <div v-if="containers.length >= 1 && booking_details.bl_number.length > 8" class="container_number_dropdown flex flex-col gap-1 mb-4">
+          <button type="button" class="w-fit bg-gray-200 px-2 py-1 rounded-[4px] hover:bg-gray-300 transition-all duration-300" @click="show_dropdown = !show_dropdown" >Select container(s)</button>
+          <div v-if="show_dropdown" class="bg-white border w-fit px-3 border-gray-300 rounded-[4px]">
+            <label class="block mb-1" v-for="(container, index) in containers" :for="container.container_number" :key="index">
+              <input type="checkbox" :id="container.container_number">
+              {{ container.container_number }}
+            </label>
+          </div>
         </div>
 
         <div v-if="containers.length >= 1" class="invoice_number flex flex-col gap-1 mb-4">
