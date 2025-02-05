@@ -34,6 +34,7 @@ const is_loading = ref(false);
 const is_container_loading = ref(false);
 const is_slot_loading = ref(false);
 const show_dropdown = ref(false);
+const checked_containers: Ref<string[]> = ref([]);
 const booking_details = ref({
   day: '',
   agency_name: '',
@@ -57,6 +58,12 @@ const formatDateTime = (isoString: string) => {
 };
 
 const handleSubmitForm = async () => {
+  if(checked_containers.value.length === 0) {
+    alert('Please select at least one container');
+    return;
+  }
+  booking_details.value.container_number = checked_containers.value.join(',');
+
   if (!booking_details.value.command || !booking_details.value.bl_number || 
       !booking_details.value.container_number || !booking_details.value.invoice_number) {
     alert('Please fill all fields');
@@ -122,6 +129,18 @@ const fetchContainers = async (e: FocusEvent) => {
       is_container_loading.value = false;
     }
   }
+}
+
+const handleInputCheckbox = (e: Event) => {
+  const checkbox = (e.target as HTMLInputElement);
+
+  if(checkbox.checked) {
+    checked_containers.value.push(checkbox.value);
+    console.log(checked_containers.value);
+  } else {
+    checked_containers.value = checked_containers.value.filter(element => element !== checkbox.value);
+  }
+  console.log(checked_containers.value);
 }
 
 onBeforeMount(async () => {
@@ -197,11 +216,11 @@ onBeforeMount(async () => {
         <span v-if="is_container_loading"
           class="block mx-auto mb-2 w-4 h-4 rounded-full border-x border-gray-900 animate-spin"></span>
 
-        <div v-if="containers.length >= 1 && booking_details.bl_number.length > 8" class="container_number_dropdown flex flex-col gap-1 mb-4">
+        <div v-if="containers.length >= 1" class="container_number_dropdown flex flex-col gap-1 mb-4">
           <button type="button" class="w-fit bg-gray-200 px-2 py-1 rounded-[4px] hover:bg-gray-300 transition-all duration-300" @click="show_dropdown = !show_dropdown" >Select container(s)</button>
           <div v-if="show_dropdown" class="bg-white border w-fit px-3 border-gray-300 rounded-[4px]">
             <label class="block mb-1" v-for="(container, index) in containers" :for="container.container_number" :key="index">
-              <input type="checkbox" :id="container.container_number">
+              <input @click="handleInputCheckbox" type="checkbox" :id="container.container_number" :value="container.container_number">
               {{ container.container_number }}
             </label>
           </div>
