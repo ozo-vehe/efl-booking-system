@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 
-const BASE_API_URL = "https://apitest.al-ibrabmemorialschool.com.ng/api";
+// const BASE_API_URL = "https://apitest.al-ibrabmemorialschool.com.ng/api";
+const BASE_API_URL = "https://booking-prototype.efl.africa/api";
 
 interface UserSignupDetails {
   name: string;
@@ -126,7 +127,7 @@ export const useBookingsStore = defineStore("bookingsStore", {
     },
     async getAvailableSlots(calendar_day: string) {
       try {
-        const req = await fetch(`${BASE_API_URL}/slot`, {
+        const req = await fetch(`${BASE_API_URL}/slot/detail`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -11,7 +11,7 @@ export const getDateRange = () => {
   // Generate the range of 7 days, excluding weekends
   const range = [];
   const disabled_days = [];
-  let i = 8;
+  let i = 2;
   while (range.length < 7) {
     const date = new Date(startDate);
     date.setDate(startDate.getDate() + i);

@@ -14,7 +14,7 @@ interface Booking {
   agency_name: string,
   phone: string,
   bl_number: string,
-  container_number: string,
+  container_number: string[],
   invoice_number: string,
   command: string
 }
@@ -35,12 +35,12 @@ const is_container_loading = ref(false);
 const is_slot_loading = ref(false);
 const show_dropdown = ref(false);
 const checked_containers: Ref<string[]> = ref([]);
-const booking_details = ref({
+const booking_details: Ref<Booking> = ref({
   day: '',
   agency_name: '',
   phone: '',
   bl_number: '',
-  container_number: '',
+  container_number: [],
   invoice_number: '',
   command: '',
 })
@@ -62,7 +62,7 @@ const handleSubmitForm = async () => {
     alert('Please select at least one container');
     return;
   }
-  booking_details.value.container_number = checked_containers.value.join(',');
+  booking_details.value.container_number = checked_containers.value;
 
   if (!booking_details.value.command || !booking_details.value.bl_number || 
       !booking_details.value.container_number || !booking_details.value.invoice_number) {
@@ -90,7 +90,7 @@ const handleSubmitForm = async () => {
         agency_name: '',
         phone: '',
         bl_number: '',
-        container_number: '',
+        container_number: [],
         invoice_number: '',
         day: displayed_date.value,
       };
@@ -105,6 +105,7 @@ const handleSubmitForm = async () => {
 }
 
 const handleDayClick = async (e: any) => {
+  is_slot_loading.value = true;
   const { message } = formatDateTime(e);
   displayed_date.value = message;
   const edited_date = new Date(message).toLocaleString('en-US', {
@@ -115,6 +116,7 @@ const handleDayClick = async (e: any) => {
   const [month, day, year] = edited_date.split('/');
   const formatted_date = `${year}/${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}`;
   await getAvailableSlots(formatted_date);
+  is_slot_loading.value = false;
 }
 
 const fetchContainers = async (e: FocusEvent) => {
@@ -146,6 +148,7 @@ const handleInputCheckbox = (e: Event) => {
 onBeforeMount(async () => {
   const { range: range_days, disabled_days } = getDateRange();
   range.value = range_days;
+  console.log(range_days);
 
   const formattedRangeDays = range_days.map(date => {
     const [month, day, year] = date.split('/');
@@ -209,14 +212,14 @@ onBeforeMount(async () => {
 
         <div class="bl_number flex flex-col gap-1 mb-4">
           <label for="bl_number">BL Number</label>
-          <input v-model="booking_details.bl_number" class="w-full border px-2 py-2 rounded-md" type="text"
+          <input v-model.lazy="booking_details.bl_number" class="w-full border px-2 py-2 rounded-md" type="text"
             name="bl_number" id="bl_number" placeholder="BL Number" @focusout="fetchContainers" required>
         </div>
 
         <span v-if="is_container_loading"
           class="block mx-auto mb-2 w-4 h-4 rounded-full border-x border-gray-900 animate-spin"></span>
 
-        <div v-if="containers.length >= 1" class="container_number_dropdown flex flex-col gap-1 mb-4">
+        <div v-if="containers.length >= 1 && !is_container_loading" class="container_number_dropdown flex flex-col gap-1 mb-4">
           <button type="button" class="w-fit bg-gray-200 px-2 py-1 rounded-[4px] hover:bg-gray-300 transition-all duration-300" @click="show_dropdown = !show_dropdown" >Select container(s)</button>
           <div v-if="show_dropdown" class="bg-white border w-fit px-3 border-gray-300 rounded-[4px]">
             <label class="block mb-1" v-for="(container, index) in containers" :for="container.container_number" :key="index">
