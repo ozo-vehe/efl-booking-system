@@ -77,11 +77,15 @@ const formatDateTime = (isoString: string | Date) => {
                 {{ formatDateTime(request.day) }}
               </td>
               <td class="whitespace-nowrap px-6 py-4">
-                <span
-                  :class="[request.status === 'pending' ? 'bg-yellow-100 text-yellow-900' : 'bg-green-100 text-green-900', 'px-2 py-1 rounded-full capitalize text-xs']">
-                  {{ request.status }}
-                </span>
-              </td>
+              <span :class="[
+                request.status === 'pending' ? 'bg-yellow-100 text-yellow-900' :
+                  request.status === 'approved' ? 'bg-green-100 text-green-900' :
+                    'bg-red-100 text-red-900',
+                'px-2 py-1 rounded-full capitalize text-xs'
+              ]">
+                {{ request.status }}
+              </span>
+            </td>
             </tr>
           </tbody>
         </table>
